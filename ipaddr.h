@@ -4,7 +4,8 @@
 #include <array>
 #include <type_traits>
 #include <cstdint>
-#include <arpa/inet.h>
+
+#include <lwip/sockets.h>
 
 namespace IPAddr {
 
@@ -318,7 +319,7 @@ namespace IPAddr {
         //  3. First 96 bits in above representation and last 32 bits represented as an IPv4 address.
         //
         template <size_t N>
-        static constexpr int inet6_aton(const char (&str)[N], struct in6_addr& in6)
+        static constexpr int inet6_aton_(const char (&str)[N], struct in6_addr& in6)
         {
             std::array<uint16_t, 8> comps = { 0 };
             int shortener_pos = -1;
@@ -414,7 +415,7 @@ namespace IPAddr {
     }
 
     template <size_t N>
-    static constexpr struct in_addr inet_aton(const char (&str)[N])
+    static constexpr struct in_addr inet_aton_(const char (&str)[N])
     {
         struct in_addr in = { 0xFFFFFFFF };
 
@@ -423,7 +424,7 @@ namespace IPAddr {
     }
 
     template <int AddressF, size_t N>
-    static constexpr auto inet_pton(const char (&str)[N])
+    static constexpr auto inet_pton_(const char (&str)[N])
     {
         static_assert(AddressF == AF_INET || AddressF == AF_INET6, "Unsupported address family.");
 
@@ -435,7 +436,7 @@ namespace IPAddr {
         }
         else {
             struct in6_addr in6 = {};
-            details::inet6_aton(str, in6);
+            details::inet6_aton_(str, in6);
 
             return in6;
         }
@@ -454,7 +455,7 @@ namespace IPAddr {
     {
         struct in6_addr in6 = {};
 
-        return details::inet6_aton(str, in6) != -1;
+        return details::inet6_aton_(str, in6) != -1;
     }
 
 }
@@ -467,9 +468,9 @@ static constexpr auto operator "" _ipaddr()
     static_assert(IPAddr::is_valid_ip4addr(str) || IPAddr::is_valid_ip6addr(str), "Invalid IP address format.");
 
     if constexpr ( IPAddr::is_valid_ip4addr(str) )
-        return IPAddr::inet_aton(str);
+        return IPAddr::inet_aton_(str);
     else
-        return IPAddr::inet_pton<AF_INET6>(str);
+        return IPAddr::inet_pton_<AF_INET6>(str);
 }
 
 static constexpr uint16_t operator "" _ipport(unsigned long long port)
